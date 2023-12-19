@@ -6,9 +6,12 @@ jobs:
     resource_class: kelvintaywl-cci/ec2-linux2023-tf
     environment:
     steps:
-      - run: whoami
-      - run: echo "echo 'BASH_ENV loaded'" >>  $BASH_ENV
-      - run: echo done
+      - run:
+          name: set env vars via BASH_ENV
+          command: |
+            echo "export PYENV_ROOT='/home/circleci/.pyenv'" >> $BASH_ENV
+            echo "export PATH='/home/circleci/.pyenv/shims:/home/circleci/.pyenv/bin:$PATH'" >>  $BASH_ENV
+      - run: which pyenv && python --version
 
 workflows:
   main:
