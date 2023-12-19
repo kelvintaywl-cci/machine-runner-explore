@@ -9,9 +9,17 @@ jobs:
       - run:
           name: set env vars via BASH_ENV
           command: |
-            echo "export PYENV_ROOT='/home/circleci/.pyenv'" >> $BASH_ENV
-            echo "export PATH='/home/circleci/.pyenv/shims:/home/circleci/.pyenv/bin:$PATH'" >>  $BASH_ENV
-      - run: which pyenv && python --version
+            echo 'export FOOBAR=fizzbuzz' >> ~/.profile
+            # verify
+            cat $HOME/.profile
+
+            # add to BASH_ENV file
+            echo "source $HOME/.profile" >> $BASH_ENV
+      - run:
+          name: inspect
+          command: |
+            # should print fizzbuzz
+            printenv FOOBAR
 
 workflows:
   main:
