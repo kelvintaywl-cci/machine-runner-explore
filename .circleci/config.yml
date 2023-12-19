@@ -1,0 +1,14 @@
+version: 2.1
+
+jobs:
+  pyenv:
+    machine: true
+    resource_class: kelvintaywl-cci/ec2-linux2023-tf
+    steps:
+      - run: whoami
+      - run: which python && python --version
+
+workflows:
+  main:
+    jobs:
+      - pyenv
