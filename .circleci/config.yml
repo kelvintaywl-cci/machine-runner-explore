@@ -5,10 +5,10 @@ jobs:
     machine: true
     resource_class: kelvintaywl-cci/ec2-linux2023-tf
     environment:
-      PYENV_ROOT: '/home/circleci/.pyenv'
-      PATH: '/home/circleci/.pyenv/shims:/home/circleci/.pyenv/bin:$PATH'
     steps:
-      - run: which python && python --version
+      - run: whoami
+      - run: echo "echo 'BASH_ENV loaded'" >>  $BASH_ENV
+      - run: echo done
 
 workflows:
   main:
