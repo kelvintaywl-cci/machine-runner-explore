@@ -8,7 +8,6 @@ jobs:
       PYENV_ROOT: '/home/circleci/.pyenv'
       PATH: '/home/circleci/.pyenv/shims:/home/circleci/.pyenv/bin:$PATH'
     steps:
-      - run: whoami
       - run: which python && python --version
 
 workflows:
