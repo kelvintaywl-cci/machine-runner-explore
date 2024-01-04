@@ -1,27 +1,18 @@
 version: 2.1
 
 jobs:
-  pyenv:
+  test:
     machine: true
     resource_class: kelvintaywl-cci/ec2-linux2023-tf
     environment:
     steps:
       - run:
-          name: set env vars via BASH_ENV
+          name: create file
           command: |
-            echo 'export FOOBAR=fizzbuzz' >> ~/.profile
-            # verify
-            cat $HOME/.profile
-
-            # add to BASH_ENV file
-            echo "source $HOME/.profile" >> $BASH_ENV
-      - run:
-          name: inspect
-          command: |
-            # should print fizzbuzz
-            printenv FOOBAR
+            # 1G file
+            head -c 1073741824 </dev/urandom >/tmp/$CIRCLE_WORKFLOW_JOB_ID.dump
 
 workflows:
   main:
     jobs:
-      - pyenv
+      - test
