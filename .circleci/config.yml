@@ -6,11 +6,12 @@ jobs:
     resource_class: kelvintaywl-cci/ec2-linux2023-tf
     environment:
     steps:
+      - run: pwd
       - run:
           name: create file
           command: |
             # 1G file
-            head -c 1073741824 </dev/urandom >/tmp/$CIRCLE_WORKFLOW_JOB_ID.dump
+            head -c 1073741824 </dev/urandom > ./$CIRCLE_WORKFLOW_JOB_ID.dump
 
 workflows:
   main:
