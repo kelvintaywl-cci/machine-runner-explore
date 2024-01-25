@@ -2,6 +2,7 @@ version: 2.1
 
 jobs:
   test:
+    parallelism: 2
     machine: true
     resource_class: kelvintaywl-cci/machine3-ec2-linux2023-tf
     steps:
