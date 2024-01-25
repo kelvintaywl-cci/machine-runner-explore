@@ -5,6 +5,7 @@ jobs:
     machine: true
     resource_class: kelvintaywl-cci/machine3-ec2-linux2023-tf
     steps:
+      - run: pwd
       - checkout
 
 workflows:
