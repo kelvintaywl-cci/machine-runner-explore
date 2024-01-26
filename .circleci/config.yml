@@ -4,6 +4,9 @@ jobs:
   test:
     machine: true
     resource_class: kelvintaywl-cci/machine3-ec2-linux2023-tf
+    # as of this commit, I forgo the Runner config file (yaml) and went with:
+    # $HOME/circleci-runner machine --api.auth-token="${token}" --runner.name="${name}"
+    # I expect the Runner instance to use defaults for runner.working_directory & runner.cleanup_working_directory = false
     steps:
       - run: pwd
       - checkout
