@@ -1,16 +1,19 @@
 version: 2.1
 
-orbs:
-  ruby: circleci/ruby@2.1.0
+# orbs:
+#   ruby: circleci/ruby@2.1.0
 
 jobs:
   test:
     machine: true
     resource_class: kelvintaywl-cci/machine3-ec2-linux2023-tf
     steps:
-      - ruby/install:
-          # version: '2.7.8'
-          version: '2.6.10'
+    # copied from Ruby orb@2.1.0
+    - run:
+        command: "#!/usr/bin/env bash\n\nPARAM_RUBY_VERSION=$(eval echo \"${PARAM_VERSION}\")\n\nif ! openssl version | grep -q -E '1\\.[0-9]+\\.[0-9]+' \nthen \n    echo \"Did not find supported openssl version. Installing Openssl rvm package.\"\n    rvm pkg install openssl\n    WITH_OPENSSL=\"--with-openssl-dir=$HOME/.rvm/usr\"\nfi\n\nrvm install \"$PARAM_RUBY_VERSION\" \"$WITH_OPENSSL\"\nrvm use \"$PARAM_RUBY_VERSION\"\n\nRUBY_PATH=\"$(rvm $PARAM_RUBY_VERSION 1> /dev/null 2> /dev/null && rvm env --path)\"\nprintf '%s\\n' \"source $RUBY_PATH\" >> \"$BASH_ENV\"\n"
+        environment:
+          PARAM_VERSION: 2.6.10
+        name: Install Ruby v2.6.10 via RVM
 
 workflows:
   main:
