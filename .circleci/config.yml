@@ -11,7 +11,9 @@ jobs:
     steps:
       - run: lsb_release -a
       - ruby/install:
-          version: '2.6.10'
+          # trying to use a more-recent Ruby version
+          # based on: https://github.com/rvm/rvm/issues/5254#issuecomment-1259479336
+          version: '3.1.4'
 
 workflows:
   main:
