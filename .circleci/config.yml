@@ -6,14 +6,14 @@ orbs:
 jobs:
   test:
     machine: true
-    # EC2 instance based on Ubuntu Server 22.04 AMI.
+    # switched to EC2 instance based on Ubuntu Server 20.04 AMI.
     resource_class: kelvintaywl-cci/machine3-ec2-linux2023-tf
     steps:
       - run: lsb_release -a
       - ruby/install:
-          # trying to use a more-recent Ruby version
+          # trying to install EoL'ed Ruby 2.6.10 on an Ubuntu 20.04 now
           # based on: https://github.com/rvm/rvm/issues/5254#issuecomment-1259479336
-          version: '3.1.4'
+          version: '2.6.10'
 
 workflows:
   main:
