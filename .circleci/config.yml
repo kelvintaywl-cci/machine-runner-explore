@@ -3,13 +3,23 @@ version: 2.1
 orbs:
   ruby: circleci/ruby@2.1.0
 
+executors:
+  ubuntu2204-runner1:
+    machine: true
+    resource_class: kelvintaywl-cci/ec2-machine-runner1-ubuntu2204-tf
+  ubuntu2204-runner3:
+    machine: true
+    resource_class: kelvintaywl-cci/ec2-machine-runner3-ubuntu2204-tf
+
 jobs:
   test:
-    machine: true
-    # switched to EC2 instance based on Ubuntu Server 20.04 AMI.
-    resource_class: kelvintaywl-cci/machine3-ec2-linux2023-tf
+    parameters:
+      runner:
+        type: executor
+    executor: << parameters.runner >>
     steps:
       - run: lsb_release -a
+      - run: ssh -V
       - ruby/install:
           # trying to install EoL'ed Ruby 2.6.10 on an Ubuntu 20.04 now
           # based on: https://github.com/rvm/rvm/issues/5254#issuecomment-1259479336
@@ -18,4 +28,9 @@ jobs:
 workflows:
   main:
     jobs:
-      - test
+      - test:
+          matrix:
+            parameters:
+              runner:
+                - ubuntu2204-runner1
+                - ubuntu2204-runner3
