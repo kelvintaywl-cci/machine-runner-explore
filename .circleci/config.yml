@@ -9,7 +9,6 @@ jobs:
       - image: ubuntu:22.04
     resource_class: large
     steps:
-      - run: lsb_release -a
       - ruby/install:
           # trying to install EoL'ed Ruby 2.6.10 on an Ubuntu 20.04 now
           # based on: https://github.com/rvm/rvm/issues/5254#issuecomment-1259479336
