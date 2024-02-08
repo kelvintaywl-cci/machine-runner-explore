@@ -7,7 +7,7 @@ jobs:
   test:
     docker:
       - image: ubuntu:22.04
-    resource_class: kelvintaywl-cci/machine3-ec2-linux2023-tf
+    resource_class: large
     steps:
       - run: lsb_release -a
       - ruby/install:
