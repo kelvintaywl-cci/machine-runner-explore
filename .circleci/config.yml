@@ -1,9 +1,10 @@
 version: 2.1
 
 orbs:
+  ruby: circleci/ruby@2.1.1
   # ran the following:
   # $ circleci orb source circleci/ruby@2.1.0 | yq | pbcopy
-  ruby:
+  ruby-fixed:
     version: 2.1
     description: |
       Easily cache and install your Ruby Gems automatically, run parallel Rspec tests, or just install Ruby.
@@ -498,10 +499,13 @@ jobs:
     resource_class: kelvintaywl-cci/ec2-machine-runner3-ubuntu2204-tf
     steps:
       - run: lsb_release -a
-      - ruby/install:
+      - run: whoami
+      - checkout
+      - ruby-fixed/install:
           # trying to install EoL'ed Ruby 2.6.10 on an Ubuntu 20.04 now
           # based on: https://github.com/rvm/rvm/issues/5254#issuecomment-1259479336
           version: '2.6.10'
+      - ruby/install-deps
 
 workflows:
   main:
