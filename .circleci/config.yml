@@ -1,7 +1,492 @@
 version: 2.1
 
 orbs:
-  ruby: circleci/ruby@2.1.0
+  # ran the following:
+  # $ circleci orb source circleci/ruby@2.1.0 | yq | pbcopy
+  ruby:
+    version: 2.1
+    description: |
+      Easily cache and install your Ruby Gems automatically, run parallel Rspec tests, or just install Ruby.
+    display:
+      home_url: https://www.ruby-lang.org/
+      source_url: https://github.com/CircleCI-Public/ruby-orb
+    commands:
+      install:
+        description: Install Ruby within a build. To be used in a Linux distro with Apt available.
+        parameters:
+          version:
+            description: |
+              Ruby version. This can be a literal value (e.g, `2.7.5`). You can also pass in a string to be evaluated. For example, `${MY_RUBY_VERSION}` or `$(cat foo/bar/.ruby-version)`.
+            type: string
+        steps:
+          - run:
+              command: |-
+                #!/usr/bin/env bash
+
+                # Disable IPv6
+                mkdir -p ~/.gnupg/
+                find ~/.gnupg -type d -exec chmod 700 {} \;
+                echo "disable-ipv6" >> ~/.gnupg/dirmngr.conf
+
+                count=0
+                until gpg --keyserver hkp://keyserver.ubuntu.com --recv-keys 409B6B1796C275462A1703113804BB82D39DC0E3 7D2BAF1CF37B13E2069D6956105BD0E739499BDB
+                do
+                    count=$((count+1)); sleep 10;
+                    if [ $count -gt 2 ]; then
+                        echo "Unable to receive GPG keys, FAILING";
+                        exit 1;
+                    fi;
+                    echo "Network error: Unable to receive GPG keys. Will attempt again ($count/3)";
+                done;
+                ## Update if RVM is installed and exit
+                if [ -x "$(command -v rvm -v)" ]; then
+                    rvm get stable
+                    exit 0
+                fi
+
+                curl -sSL "https://get.rvm.io" | bash -s stable
+
+                # check for machine image specific path
+                if [ -d /opt/circleci/.rvm ]; then
+                  echo "Setting PATH up for system install"
+                  # this should be what needs to be added to that $BASH_ENV since this is what's in bash_profile - i dont know when $HOME is set
+                  echo 'export PATH=$PATH:/opt/circleci/.rvm/bin' >> $BASH_ENV
+                  echo "source /opt/circleci/.rvm/scripts/rvm" >> $BASH_ENV
+                  # this will source if anyone logs in noninteractively, nvm setup only adds nvm to the path, to get the rubygems later you need to source this again
+                  echo "source /opt/circleci/.rvm/scripts/rvm" >> ~/.bashrc
+                else
+                  # Most circle builds run as a root user, in which case rvm gets installed in /usr/local/rvm instead of $HOME/.rvm
+                  RVM_HOME=$HOME/.rvm
+                  if [ -f "$RVM_HOME/scripts/rvm" ]; then
+                    echo "Using $RVM_HOME"
+                  else
+                    RVM_HOME=/usr/local/rvm
+                    echo "Using $RVM_HOME"
+                  fi
+
+                  echo "Setting PATH up for local install"
+                  # this should be what needs to be added to that $BASH_ENV since this is what's in bash_profile - i dont know when $HOME is set
+                  echo 'export PATH=$PATH:$RVM_HOME/bin' >> $BASH_ENV
+                  echo "source $RVM_HOME/scripts/rvm" >> $BASH_ENV
+                  # this will source if anyone logs in noninteractively, nvm setup only adds nvm to the path, to get the rubygems later you need to source this again
+                  echo "source $RVM_HOME/scripts/rvm" >> ~/.bashrc
+                fi
+              name: Install/Verify Ruby Version Manager.
+          - run:
+              command: "#!/usr/bin/env bash\n\nPARAM_RUBY_VERSION=$(eval echo \"${PARAM_VERSION}\")\n\nif ! openssl version | grep -q -E '1\\.[0-9]+\\.[0-9]+' \nthen \n    echo \"Did not find supported openssl version. Installing Openssl rvm package.\"\n    rvm pkg install openssl\n    WITH_OPENSSL=\"--with-openssl-dir=$HOME/.rvm/usr\"\nfi\n\nrvm install \"$PARAM_RUBY_VERSION\" \"$WITH_OPENSSL\"\nrvm use \"$PARAM_RUBY_VERSION\"\n\nRUBY_PATH=\"$(rvm $PARAM_RUBY_VERSION 1> /dev/null 2> /dev/null && rvm env --path)\"\nprintf '%s\\n' \"source $RUBY_PATH\" >> \"$BASH_ENV\"\n"
+              environment:
+                PARAM_VERSION: << parameters.version >>
+              name: Install Ruby v<< parameters.version >> via RVM
+      install-deps:
+        description: Install gems with Bundler.
+        parameters:
+          app-dir:
+            default: .
+            description: |
+              Path to the directory containing your Gemfile file. Not needed if Gemfile lives in the root.
+            type: string
+          bundler-version:
+            default: ""
+            description: |
+              Configure which version of bundler to install and utilize. By default, it gets the bundler version from Gemfile.lock, but if it is not working use this to override.
+            type: string
+          clean-bundle:
+            default: false
+            description: |
+              Run `bundle clean --force` after `bundle install` to clean Bundler before saving dependencies to cache. By default, it is set to false.
+            type: boolean
+          gemfile:
+            default: Gemfile
+            description: Name of your Gemfile file.
+            type: string
+          include-branch-in-cache-key:
+            default: true
+            description: |
+              If true, this cache bucket will only apply to jobs within the same branch.
+            type: boolean
+          key:
+            default: gems-v1
+            description: The cache key to use. The key is immutable.
+            type: string
+          override-cache-file:
+            default: ""
+            description: |
+              Specify an alternative file to use in the cache key
+            type: string
+          path:
+            default: ./vendor/bundle
+            description: |
+              Installation path. By default, it will run bundle with `--deployment` flag and installs gems to the vendor/bundle directory.
+            type: string
+          pre-install-steps:
+            default: []
+            description: |
+              Steps that will be executed between installing bundler, and running bundle install
+            type: steps
+          with-cache:
+            default: true
+            description: Enable automatic caching of your gemfile dependencies for increased speed.
+            type: boolean
+        steps:
+          - when:
+              condition: <<parameters.with-cache>>
+              steps:
+                - run:
+                    command: "#!/usr/bin/env bash\n\nTARGET_DIR=\"/tmp\"\nif [ -n \"$HOMEDRIVE\" ]; then\n    TARGET_DIR=\"$HOMEDRIVE\\\\tmp\"\nfi\n\n# Link corresponding lock file to a temporary file used by cache commands\nif [ -n \"$PARAM_OVERRIDE_LOCKFILE\" ] && [ -f \"$PARAM_OVERRIDE_LOCKFILE\" ]; then\n    echo \"Using $PARAM_OVERRIDE_LOCKFILE as lock file\"\n    cp \"$PARAM_OVERRIDE_LOCKFILE\" $TARGET_DIR/ruby-project-lockfile\nelif [[ \"$PARAM_GEMFILE\" == *.rb ]]; then\n    GEMS_LOCKED=\"${PARAM_GEMFILE%.rb}.locked\"\n\n    if [ -f \"$GEMS_LOCKED\" ]; then\n        echo \"Using $GEMS_LOCKED as lock file\"\n        cp \"$GEMS_LOCKED\" $TARGET_DIR/ruby-project-lockfile\n    else\n        echo \"Could not find $GEMS_LOCKED file\"\n    fi\nelif [ -f \"$PARAM_GEMFILE.lock\" ]; then\n    echo \"Using $PARAM_GEMFILE.lock as lock file\"\n    cp \"$PARAM_GEMFILE.lock\" $TARGET_DIR/ruby-project-lockfile\nelse \n    echo \"Unable to determine lock file for $PARAM_GEMFILE.\"\nfi\n"
+                    environment:
+                      PARAM_GEMFILE: << parameters.gemfile >>
+                      PARAM_OVERRIDE_LOCKFILE: << parameters.override-cache-file >>
+                    name: Determine lock file
+                    working_directory: <<parameters.app-dir>>
+                - restore_cache:
+                    keys:
+                      - << parameters.key >>-{{ arch }}-<<#parameters.include-branch-in-cache-key>>{{ .Branch }}-<</parameters.include-branch-in-cache-key>>{{ checksum "/tmp/ruby-project-lockfile"  }}
+                      - << parameters.key >>-{{ arch }}-<<#parameters.include-branch-in-cache-key>>{{ .Branch }}-<</parameters.include-branch-in-cache-key>>
+          - run:
+              command: |
+                #!/usr/bin/env bash
+
+                TARGET_DIR="/tmp"
+                if [ -n "$HOMEDRIVE" ]; then
+                    TARGET_DIR="$HOMEDRIVE\\tmp"
+                fi
+
+                if test -f "$TARGET_DIR/ruby-project-lockfile"; then
+                  APP_BUNDLER_VERSION=$(cat "$TARGET_DIR/ruby-project-lockfile" | tail -1 | tr -d " ")
+                  if [ -z "$APP_BUNDLER_VERSION" ]; then
+                    echo "Could not find bundler version from lockfile. Please use bundler-version parameter"
+                  else
+                    echo "Lock file detected bundler version $APP_BUNDLER_VERSION"
+                  fi
+                fi
+
+                if [ -n "$PARAM_BUNDLER_VERSION" ]; then
+                  echo "Found bundler-version parameter to override"
+                  APP_BUNDLER_VERSION="$PARAM_BUNDLER_VERSION"
+                fi
+
+                if ! bundle version | grep -q $APP_BUNDLER_VERSION; then
+                  echo "Installing bundler $APP_BUNDLER_VERSION"
+                  gem install bundler:$APP_BUNDLER_VERSION
+                else
+                  echo "bundler $APP_BUNDLER_VERSION is already installed."
+                fi
+              environment:
+                PARAM_BUNDLER_VERSION: << parameters.bundler-version >>
+                PARAM_GEMFILE: << parameters.gemfile >>
+              name: Install Bundler
+              working_directory: <<parameters.app-dir>>
+          - steps: << parameters.pre-install-steps >>
+          - run:
+              command: |
+                #!/usr/bin/env bash
+
+                if bundle config set > /dev/null 2>&1; then
+                  if [ "$PARAM_PATH" == "./vendor/bundle" ]; then
+                    bundle config deployment 'true'
+                  fi
+                  bundle config gemfile "$PARAM_GEMFILE"
+                  bundle config path "$PARAM_PATH"
+
+                  if [ -d "$HOME/.rvm/usr/ssl" ]; then
+                    echo "Detected rvm ssl version. Configuring bundle package with openssl dir $HOME/.rvm/usr."
+                    bundle config build.openssl --with-openssl-dir="$HOME/.rvm/usr"
+                  fi
+                else
+                  if [ "$PARAM_PATH" == "./vendor/bundle" ]; then
+                    bundle config set deployment 'true'
+                  fi
+                  bundle config set gemfile "$PARAM_GEMFILE"
+                  bundle config set path "$PARAM_PATH"
+
+                  if [ -d "$HOME/.rvm/usr/ssl" ]; then
+                    echo "Detected rvm ssl version. Configuring bundle package with openssl dir $HOME/.rvm/usr."
+                    bundle config set build.openssl --with-openssl-dir="$HOME/.rvm/usr"
+                  fi
+                fi
+
+                if [ "$PARAM_CLEAN_BUNDLE" = 1 ]; then
+                  bundle check || (bundle install && bundle clean --force)
+                else
+                  bundle check || bundle install
+                fi
+              environment:
+                PARAM_CLEAN_BUNDLE: << parameters.clean-bundle >>
+                PARAM_GEMFILE: << parameters.gemfile >>
+                PARAM_PATH: << parameters.path >>
+              name: Bundle Install <<^parameters.with-cache>>(No Cache)<</parameters.with-cache>>
+              working_directory: <<parameters.app-dir>>
+          - when:
+              condition: << parameters.with-cache >>
+              steps:
+                - save_cache:
+                    key: << parameters.key >>-{{ arch }}-<<#parameters.include-branch-in-cache-key>>{{ .Branch }}-<</parameters.include-branch-in-cache-key>>{{ checksum "/tmp/ruby-project-lockfile"  }}
+                    paths:
+                      - <<parameters.app-dir>>/<< parameters.path >>
+      rspec-test:
+        description: Test with RSpec. You have to add `gem 'rspec_junit_formatter'` to your Gemfile. Enable parallelism on CircleCI for faster testing.
+        parameters:
+          app-dir:
+            default: .
+            description: |
+              Path to the directory containing your Gemfile file. Not needed if Gemfile lives in the root.
+            type: string
+          include:
+            default: spec/**/*_spec.rb
+            description: |
+              Glob to define where your test files are kept within your repository. Should multiple globs be required, they must be passed in a comma separated string (e.g.: "spec/**/*_spec.rb,spec2/**/*_spec.rb").
+            type: string
+          label:
+            default: RSpec Tests
+            description: Task label
+            type: string
+          no_output_timeout:
+            default: 10m
+            description: |
+              Allows you to specify the no_output_timeout for the rspec test. Defaults to 10m.
+            type: string
+          order:
+            default: ""
+            description: |
+              Use the order parameter to tell RSpec how to order the files, groups, and examples. Available options can be found at: https://relishapp.com/rspec/rspec-core/docs/command-line/order
+            type: string
+          out-path:
+            default: /tmp/test-results/rspec
+            description: Where to save the rspec.xml file. Will automatically be saved to test_results and artifacts on CircleCI.
+            type: string
+          rerun-fail:
+            default: true
+            description: |
+              Enabling the option uses circleci tests run command and allows the "Rerun failed tests only" feature. This feature helps optimize test execution by re-running only the failed tests from previous test run data. More information can be found at: https://circleci.com/docs/rerun-failed-tests-only
+            type: boolean
+          tag:
+            default: ""
+            description: |
+              Use the tag parameter to tell RSpec to run only examples with (or without) a specified tag. Available options can be found at: https://relishapp.com/rspec/rspec-core/v/3-11/docs/command-line/tag-option
+            type: string
+        steps:
+          - run:
+              command: |
+                #!/usr/bin/env bash
+
+                if [ "$CIRCLE_NODE_TOTAL" -eq 1 ]; then
+                  printf '%s\n' "Your job parallelism is set to 1."
+                  printf '%s\n' "The split test by timings requires at least 2 nodes to generate historical timing data."
+                  printf '%s\n' "Consider increasing your job parallelism to 2 or more."
+                  printf '%s\n' "See https://circleci.com/docs/2.0/parallelism-faster-jobs/#using-the-circleci-cli-to-split-tests for more information."
+                fi
+
+                # Disable bash glob expansion
+                # Without this, the glob parameter will be expanded before the split command is run
+                set -o noglob
+
+                if ! mkdir -p "$PARAM_OUT_PATH"; then
+                  printf '%s\n' "Failed to create output directory: \"$PARAM_OUT_PATH\""
+                  exit 1
+                fi
+
+                # store it as an array in the globs variable
+                read -ra globs \<<< "$PARAM_INCLUDE"
+
+                prepare_split_files() {
+                  # Backup IFS
+                  readonly old_ifs="$IFS"
+
+                  # Split globs per comma and run the CLI split command
+                  IFS=","
+                  split_files=$(circleci tests glob "${globs[@]}" | circleci tests split --split-by=timings)
+
+                  # Convert list of test files to array
+                  # This is necessary because the split command returns a list of files separated by newline
+                  while IFS= read -r line; do test_files+=("$line"); done \<<< "$split_files"
+
+                  # Rollback IFS
+                  IFS="$old_ifs"
+                }
+
+                args=()
+
+                if [ -n "$PARAM_ORDER" ]; then
+                  args+=(--order "$PARAM_ORDER")
+                fi
+
+                if [ -n "$PARAM_TAG" ]; then
+                  args+=(--tag "$PARAM_TAG")
+                fi
+
+                # Parse array of test files to string separated by single space and run tests
+                # Leaving set -x here because it's useful for debugging what files are being tested
+                set -x
+                  if [ "$PARAM_RERUN_FAIL" = 1 ]; then
+                    circleci tests glob "${globs[@]}" | circleci tests run --command "xargs bundle exec rspec --profile 10 --format RspecJunitFormatter --out \"$PARAM_OUT_PATH\"/results.xml --format progress ${args[*]}" --verbose --split-by=timings
+                  else
+                    prepare_split_files
+                    bundle exec rspec "${test_files[@]}" --profile 10 --format RspecJunitFormatter --out "$PARAM_OUT_PATH"/results.xml --format progress "${args[@]}"
+                  fi
+                set +x
+              environment:
+                PARAM_INCLUDE: <<parameters.include>>
+                PARAM_ORDER: <<parameters.order>>
+                PARAM_OUT_PATH: <<parameters.out-path>>
+                PARAM_RERUN_FAIL: <<parameters.rerun-fail>>
+                PARAM_TAG: <<parameters.tag>>
+              name: <<parameters.label>>
+              no_output_timeout: <<parameters.no_output_timeout>>
+              working_directory: <<parameters.app-dir>>
+          - store_test_results:
+              path: <<parameters.out-path>>
+          - store_artifacts:
+              destination: test-results
+              path: <<parameters.out-path>>
+      rubocop-check:
+        description: Check the code by Rubocop. You have to add `gem 'rubocop'` to your Gemfile. Enable parallelism on CircleCI for faster checking.
+        parameters:
+          app-dir:
+            default: .
+            description: |
+              Path to the directory containing your Gemfile file. Not needed if Gemfile lives in the root.
+            type: string
+          check-path:
+            default: .
+            type: string
+          format:
+            default: progress
+            description: Customize the formatter for rubocop https://docs.rubocop.org/rubocop/0.88/formatters.html
+            type: string
+          label:
+            default: Rubocop Checks
+            description: Task label
+            type: string
+          out-path:
+            default: /tmp/rubocop-results
+            description: Customize the directory of output file
+            type: string
+          parallel:
+            default: false
+            description: |
+              Use available CPUs to execute inspection in parallel.
+            type: boolean
+        steps:
+          - run:
+              command: |-
+                #!/usr/bin/env bash
+
+                mkdir -p "$PARAM_OUT_PATH"
+
+                if [ "$PARAM_PARALLEL" -eq 0 ]; then
+                  bundle exec rubocop "$PARAM_CHECK_PATH" \
+                  --out $"$PARAM_OUT_PATH"/check-results.xml \
+                  --format "$PARAM_FORMAT"
+                else
+                  bundle exec rubocop "$PARAM_CHECK_PATH" \
+                  --out $"$PARAM_OUT_PATH"/check-results.xml \
+                  --format "$PARAM_FORMAT" \
+                  --parallel
+                fi
+              environment:
+                PARAM_CHECK_PATH: <<parameters.check-path>>
+                PARAM_FORMAT: <<parameters.format>>
+                PARAM_OUT_PATH: <<parameters.out-path>>
+                PARAM_PARALLEL: <<parameters.parallel>>
+              name: <<parameters.label>>
+              working_directory: <<parameters.app-dir>>
+    executors:
+      default:
+        description: |
+          Select the version of Ruby to use. Uses CircleCI's highly cached convenience images built for CI.
+          Any available tag from this list can be used: https://hub.docker.com/r/cimg/ruby/tags
+        docker:
+          - image: cimg/ruby:<< parameters.tag >>
+        parameters:
+          tag:
+            default: "2.7"
+            description: The `cimg/ruby` Docker image version tag.
+            type: string
+    examples:
+      install_ruby:
+        description: |
+          For environments where Ruby is not pre-installed. (Recommended: It is faster and more deterministic to use a Docker image with Ruby pre-installed. Installing Ruby at run-time is not advised unless required.)
+        usage:
+          version: "2.1"
+          orbs:
+            ruby: circleci/ruby@x.y
+          jobs:
+            build:
+              docker:
+                - image: cimg/base:stable
+              steps:
+                - checkout
+                - ruby/install:
+                    version: "2.7"
+                - run: echo "Ruby 2.7 has been installed"
+          workflows: null
+      ruby_rails_sample_app:
+        description: |
+          Build and test a full Ruby Rails application with a Postgres database using RSpec.
+          View the full sample application source: https://github.com/CircleCI-Public/circleci-demo-ruby-rails/
+        usage:
+          version: "2.1"
+          orbs:
+            node: circleci/node@x.y
+            ruby: circleci/ruby@x.y
+          jobs:
+            build:
+              docker:
+                - image: cimg/ruby:2.7-node
+              steps:
+                - checkout
+                - ruby/install-deps
+                - node/install-packages:
+                    cache-key: yarn.lock
+                    pkg-manager: yarn
+            checking:
+              docker:
+                - image: cimg/ruby:2.7-node
+              steps:
+                - checkout
+                - ruby/install-deps
+                - ruby/rubocop-check:
+                    format: progress
+                    label: Inspecting with Rubocop
+            test:
+              docker:
+                - image: cimg/ruby:2.7-node
+                - environment:
+                    POSTGRES_DB: rails_blog_test
+                    POSTGRES_PASSWORD: ""
+                    POSTGRES_USER: circleci-demo-ruby
+                  image: circleci/postgres:9.5-alpine
+              environment:
+                BUNDLE_JOBS: "3"
+                BUNDLE_RETRY: "3"
+                PGHOST: 127.0.0.1
+                PGPASSWORD: ""
+                PGUSER: circleci-demo-ruby
+                RAILS_ENV: test
+              parallelism: 3
+              steps:
+                - checkout
+                - ruby/install-deps
+                - node/install-packages:
+                    cache-key: yarn.lock
+                    pkg-manager: yarn
+                - run:
+                    command: dockerize -wait tcp://localhost:5432 -timeout 1m
+                    name: Wait for DB
+                - run:
+                    command: bundle exec rails db:schema:load --trace
+                    name: Database setup
+                - ruby/rspec-test:
+                    include: spec/**/*_spec.rb
+          workflows:
+            build_and_test:
+              jobs:
+                - build
+                - checking
+                - test:
+                    requires:
+                      - build
+
 
 jobs:
   test:
