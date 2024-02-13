@@ -495,7 +495,7 @@ jobs:
   test:
     machine: true
     # switched to EC2 instance based on Ubuntu Server 20.04 AMI.
-    resource_class: kelvintaywl-cci/machine3-ec2-linux2023-tf
+    resource_class: kelvintaywl-cci/ec2-machine-runner3-ubuntu2204-tf
     steps:
       - run: lsb_release -a
       - ruby/install:
