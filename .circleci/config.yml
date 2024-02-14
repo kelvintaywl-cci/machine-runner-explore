@@ -192,9 +192,18 @@ orbs:
                   bundle config gemfile "$PARAM_GEMFILE"
                   bundle config path "$PARAM_PATH"
 
-                  if [ -d "$HOME/.rvm/usr/ssl" ]; then
-                    echo "Detected rvm ssl version. Configuring bundle package with openssl dir $HOME/.rvm/usr."
-                    bundle config build.openssl --with-openssl-dir="$HOME/.rvm/usr"
+                  # Most circle builds run as a root user, in which case rvm gets installed in /usr/local/rvm instead of $HOME/.rvm
+                  RVM_HOME=$HOME/.rvm
+                  if [ -f "$RVM_HOME/scripts/rvm" ]; then
+                    echo "Using $RVM_HOME"
+                  else
+                    RVM_HOME=/usr/local/rvm
+                    echo "Using $RVM_HOME"
+                  fi
+
+                  if [ -d "$RVM_HOME/usr/ssl" ]; then
+                    echo "Detected rvm ssl version. Configuring bundle package with openssl dir $RVM_HOME/usr."
+                    bundle config build.openssl --with-openssl-dir="$RVM_HOME/usr"
                   fi
                 else
                   if [ "$PARAM_PATH" == "./vendor/bundle" ]; then
@@ -203,9 +212,9 @@ orbs:
                   bundle config set gemfile "$PARAM_GEMFILE"
                   bundle config set path "$PARAM_PATH"
 
-                  if [ -d "$HOME/.rvm/usr/ssl" ]; then
-                    echo "Detected rvm ssl version. Configuring bundle package with openssl dir $HOME/.rvm/usr."
-                    bundle config set build.openssl --with-openssl-dir="$HOME/.rvm/usr"
+                  if [ -d "$RVM_HOME/usr/ssl" ]; then
+                    echo "Detected rvm ssl version. Configuring bundle package with openssl dir $RVM_HOME/usr."
+                    bundle config set build.openssl --with-openssl-dir="$RVM_HOME/usr"
                   fi
                 fi
 
@@ -505,7 +514,7 @@ jobs:
           # trying to install EoL'ed Ruby 2.6.10 on an Ubuntu 20.04 now
           # based on: https://github.com/rvm/rvm/issues/5254#issuecomment-1259479336
           version: '2.6.10'
-      - ruby/install-deps
+      - ruby-fixed/install-deps
 
 workflows:
   main:
