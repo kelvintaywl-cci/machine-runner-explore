@@ -505,8 +505,7 @@ jobs:
           # trying to install EoL'ed Ruby 2.6.10 on an Ubuntu 20.04 now
           # based on: https://github.com/rvm/rvm/issues/5254#issuecomment-1259479336
           version: '2.6.10'
-      - ruby/install-deps:
-          with-cache: false
+      - ruby/install-deps
 
 workflows:
   main:
