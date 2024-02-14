@@ -1,18 +1,22 @@
 version: 2.1
 
+orbs:
+  ruby: circleci/ruby@2.1.1
+
 jobs:
   test:
     machine: true
-    resource_class: kelvintaywl-cci/ec2-linux2023-tf
-    environment:
+    # switched to EC2 instance based on Ubuntu Server 20.04 AMI.
+    resource_class: kelvintaywl-cci/ec2-machine-runner3-ubuntu2204-tf
     steps:
-      - run: pwd
-      - run:
-          name: create file
-          command: |
-            # 1G file
-            head -c 1073741824 </dev/urandom > ./$CIRCLE_WORKFLOW_JOB_ID.dump
-            tree .
+      - run: lsb_release -a
+      - run: whoami
+      - checkout
+      - ruby/install:
+          # trying to install EoL'ed Ruby 2.6.10 on an Ubuntu 20.04 now
+          # based on: https://github.com/rvm/rvm/issues/5254#issuecomment-1259479336
+          version: '2.6.10'
+      - ruby/install-deps
 
 workflows:
   main:
