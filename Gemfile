@@ -1,4 +1,7 @@
-source 'https://rubygems.org'
+# frozen_string_literal: true
 
-# Gems here
-gem 'sqlite3'
+source "https://rubygems.org"
+
+# gem "rails"
+
+gem "sqlite3", "~> 1.6"

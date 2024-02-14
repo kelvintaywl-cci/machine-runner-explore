@@ -506,7 +506,6 @@ jobs:
           # based on: https://github.com/rvm/rvm/issues/5254#issuecomment-1259479336
           version: '2.6.10'
       - ruby/install-deps:
-          bundler-version: '2.0.2'
           with-cache: false
 
 workflows:
