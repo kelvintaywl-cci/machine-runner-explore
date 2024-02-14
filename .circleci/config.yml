@@ -1,8 +1,9 @@
 version: 2.1
 
 orbs:
-  # copied from source via:
-  #  $ circleci orb source circleci/ruby@2.1.1 | yq | pbcopy
+  # copied from bugfix source via
+  # (on git@github.com:kelvintaywl/ruby-orb.git fix-openssl-dir-rvm-home branch)
+  # $ circleci orb pack src | yq | pbcopy
   ruby:
     version: 2.1
     description: |
@@ -54,6 +55,7 @@ orbs:
                   echo "source /opt/circleci/.rvm/scripts/rvm" >> $BASH_ENV
                   # this will source if anyone logs in noninteractively, nvm setup only adds nvm to the path, to get the rubygems later you need to source this again
                   echo "source /opt/circleci/.rvm/scripts/rvm" >> ~/.bashrc
+                  echo "export RVM_HOME=/opt/circleci/.rvm" >> $BASH_ENV
                 else
                   # Most circle builds run as a root user, in which case rvm gets installed in /usr/local/rvm instead of $HOME/.rvm
                   RVM_HOME=$HOME/.rvm
@@ -63,6 +65,7 @@ orbs:
                     RVM_HOME=/usr/local/rvm
                     echo "Using $RVM_HOME"
                   fi
+                  echo "export RVM_HOME=$RVM_HOME" >> $BASH_ENV
 
                   echo "Setting PATH up for local install"
                   # this should be what needs to be added to that $BASH_ENV since this is what's in bash_profile - i dont know when $HOME is set
@@ -73,7 +76,7 @@ orbs:
                 fi
               name: Install/Verify Ruby Version Manager.
           - run:
-              command: "#!/usr/bin/env bash\n\nPARAM_RUBY_VERSION=$(eval echo \"${PARAM_VERSION}\")\n\nif ! openssl version | grep -q -E '1\\.[0-9]+\\.[0-9]+' \nthen \n    echo \"Did not find supported openssl version. Installing Openssl rvm package.\"\n    rvm pkg install openssl\n    WITH_OPENSSL=\"--with-openssl-dir=$HOME/.rvm/usr\"\nfi\n\nrvm install \"$PARAM_RUBY_VERSION\" \"$WITH_OPENSSL\"\nrvm use \"$PARAM_RUBY_VERSION\"\n\nRUBY_PATH=\"$(rvm $PARAM_RUBY_VERSION 1> /dev/null 2> /dev/null && rvm env --path)\"\nprintf '%s\\n' \"source $RUBY_PATH\" >> \"$BASH_ENV\"\n"
+              command: "#!/usr/bin/env bash\n\nPARAM_RUBY_VERSION=$(eval echo \"${PARAM_VERSION}\")\n\nif ! openssl version | grep -q -E '1\\.[0-9]+\\.[0-9]+' \nthen \n    echo \"Did not find supported openssl version. Installing Openssl rvm package.\"\n    rvm pkg install openssl\n    # location of RVM is expected to be available at RVM_HOME env var\n    WITH_OPENSSL=\"--with-openssl-dir=$RVM_HOME/usr\"\nfi\n\nrvm install \"$PARAM_RUBY_VERSION\" \"$WITH_OPENSSL\"\nrvm use \"$PARAM_RUBY_VERSION\"\n\nRUBY_PATH=\"$(rvm $PARAM_RUBY_VERSION 1> /dev/null 2> /dev/null && rvm env --path)\"\nprintf '%s\\n' \"source $RUBY_PATH\" >> \"$BASH_ENV\"\n"
               environment:
                 PARAM_VERSION: << parameters.version >>
               name: Install Ruby v<< parameters.version >> via RVM
@@ -188,9 +191,19 @@ orbs:
                   bundle config gemfile "$PARAM_GEMFILE"
                   bundle config path "$PARAM_PATH"
 
-                  if [ -d "$HOME/.rvm/usr/ssl" ]; then
-                    echo "Detected rvm ssl version. Configuring bundle package with openssl dir $HOME/.rvm/usr."
-                    bundle config build.openssl --with-openssl-dir="$HOME/.rvm/usr"
+                  if [ -d /opt/circleci/.rvm ]; then
+                    RVM_HOME=/opt/circleci/.rvm
+                  else
+                    # Most circle builds run as a root user, in which case rvm gets installed in /usr/local/rvm instead of $HOME/.rvm
+                    RVM_HOME=$HOME/.rvm
+                    if [ ! -f "$RVM_HOME/scripts/rvm" ]; then
+                      RVM_HOME=/usr/local/rvm
+                    fi
+                  fi
+
+                  if [ -d "$RVM_HOME/usr/ssl" ]; then
+                    echo "Detected rvm ssl version. Configuring bundle package with openssl dir $RVM_HOME/usr."
+                    bundle config build.openssl --with-openssl-dir="$RVM_HOME/usr"
                   fi
                 else
                   if [ "$PARAM_PATH" == "./vendor/bundle" ]; then
@@ -199,9 +212,9 @@ orbs:
                   bundle config set gemfile "$PARAM_GEMFILE"
                   bundle config set path "$PARAM_PATH"
 
-                  if [ -d "$HOME/.rvm/usr/ssl" ]; then
-                    echo "Detected rvm ssl version. Configuring bundle package with openssl dir $HOME/.rvm/usr."
-                    bundle config set build.openssl --with-openssl-dir="$HOME/.rvm/usr"
+                  if [ -d "$RVM_HOME/usr/ssl" ]; then
+                    echo "Detected rvm ssl version. Configuring bundle package with openssl dir $RVM_HOME/usr."
+                    bundle config set build.openssl --with-openssl-dir="$RVM_HOME/usr"
                   fi
                 fi
 
