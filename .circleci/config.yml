@@ -500,8 +500,21 @@ orbs:
                     requires:
                       - build
 
-
 jobs:
+  cimgbase:
+    docker:
+      - image: cimg/base:current
+    resource_class: medium
+    steps:
+      - run: lsb_release -a
+      - run: whoami
+      - checkout
+      - ruby/install:
+          # trying to install EoL'ed Ruby 2.6.10 on an Ubuntu 20.04 now
+          # based on: https://github.com/rvm/rvm/issues/5254#issuecomment-1259479336
+          version: '2.6.10'
+      - ruby/install-deps
+
   test:
     machine: true
     # switched to EC2 instance based on Ubuntu Server 20.04 AMI.
@@ -520,3 +533,5 @@ workflows:
   main:
     jobs:
       - test
+      # confirm this also works on Docker executor jobs where the execution environment does not use root.
+      - cimgbase
