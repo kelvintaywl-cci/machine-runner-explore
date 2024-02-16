@@ -3,16 +3,9 @@ version: 2.1
 jobs:
   test:
     machine: true
-    resource_class: kelvintaywl-cci/ec2-linux2023-tf
-    environment:
+    resource_class: kelvintaywl-cci/ec2-machine-runner1-ubuntu2204-tf
     steps:
-      - run: pwd
-      - run:
-          name: create file
-          command: |
-            # 1G file
-            head -c 1073741824 </dev/urandom > ./$CIRCLE_WORKFLOW_JOB_ID.dump
-            tree .
+      - run: sleep 50
 
 workflows:
   main:
