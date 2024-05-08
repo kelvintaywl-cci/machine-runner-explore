@@ -3,7 +3,7 @@ version: 2.1
 jobs:
   test:
     machine: true
-    resource_class: kelvintaywl-cci/ec2-linux2023-tf
+    resource_class: kelvintaywl-cci/machine3-linux-tf
     environment:
     steps:
       - run: pwd
