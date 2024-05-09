@@ -2,16 +2,12 @@ version: 2.1
 
 jobs:
   test:
-    machine: true
-    resource_class: kelvintaywl-cci/machine3-linux-tf
+    docker:
+      - image: cimg/base:current
+    resource_class: kelvintaywl-cci/container-k3s-tf
     steps:
       - run: pwd
-      - run:
-          name: create file
-          command: |
-            # 1G file
-            head -c 1073741824 </dev/urandom > ./$CIRCLE_WORKFLOW_JOB_ID.dump
-            tree .
+      - checkout
 
 workflows:
   main:
