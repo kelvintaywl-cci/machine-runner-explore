@@ -5,8 +5,7 @@ jobs:
     machine: true
     resource_class: kelvintaywl-cci/machine3-windows-tf
     steps:
-      - run: pwd
-      - checkout
+      - run: Write-Host "hello"
 
 workflows:
   main:
