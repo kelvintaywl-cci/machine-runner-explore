@@ -2,9 +2,8 @@ version: 2.1
 
 jobs:
   test:
-    docker:
-      - image: cimg/base:current
-    resource_class: kelvintaywl-cci/container-k3s-tf
+    machine: true
+    resource_class: kelvintaywl-cci/machine3-windows-tf
     steps:
       - run: pwd
       - checkout
