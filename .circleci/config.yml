@@ -4,6 +4,7 @@ jobs:
   test:
     machine: true
     resource_class: kelvintaywl-cci/machine3-windows-tf
+    shell: 'powershell.exe -ExecutionPolicy Bypass'
     steps:
       - run: Write-Host "hello"
 
