@@ -12,7 +12,7 @@ jobs:
       - run: printenv PATH
       - run: mkdir -p /tmp/throwaway/bin
       - run: |
-          cat <<EOT >> /tmp/throwaway/bin/nvm
+          cat /<<EOT >> /tmp/throwaway/bin/nvm
           #!/usr/bin/env bash
           echo "mock NVM"
           EOT
