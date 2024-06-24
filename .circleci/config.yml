@@ -9,7 +9,7 @@ jobs:
   foo:
     executor: machine3-linux
     steps:
-      - run: printenv FOOBAR
+      - run: printenv PATH
 
 workflows:
   main:
