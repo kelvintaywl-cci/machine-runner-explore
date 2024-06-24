@@ -16,7 +16,8 @@ jobs:
           #!/usr/bin/env bash
           echo "mock NVM"
           EOT
-      - run: echo "export PATH='$PATH:/tmp/throwaway/bin'" >> $BASH_ENV
+          chmod +x /tmp/throwaway/bin/nvm
+      - run: echo "export PATH='/tmp/throwaway/bin:$PATH'" >> $BASH_ENV
       - run: printenv PATH
       - run: which nvm
 
