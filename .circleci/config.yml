@@ -11,10 +11,14 @@ jobs:
     steps:
       - run: printenv PATH
       - run: mkdir -p /tmp/throwaway/bin
-      - run: touch /tmp/throwaway/bin/nvm_mock
+      - run: |
+          cat <<EOT >> /tmp/throwaway/bin/nvm
+          #!/usr/bin/env bash
+          echo "mock NVM"
+          EOT
       - run: echo "export PATH='$PATH:/tmp/throwaway/bin'" >> $BASH_ENV
       - run: printenv PATH
-      - run: which nvm_mock
+      - run: which nvm
 
 workflows:
   main:
