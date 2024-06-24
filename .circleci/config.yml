@@ -10,6 +10,10 @@ jobs:
     executor: machine3-linux
     steps:
       - run: printenv PATH
+      - run: mkdir -p /tmp/throwaway/bin
+      - run: touch /tmp/throwaway/bin/nvm_mock
+      - run: echo "export PATH='${PATH}://tmp/throwaway/bin" >> $BASH_ENV
+      - run: which nvm_mock
 
 workflows:
   main:
