@@ -9,15 +9,9 @@ jobs:
   foo:
     executor: machine3-linux
     steps:
-      # 5 mins
-      - run: sleep 300
-  bar:
-    executor: machine3-linux
-    steps:
-      - run: sleep 30
+      - run: printenv FOOBAR
 
 workflows:
   main:
     jobs:
       - foo
-      - bar
