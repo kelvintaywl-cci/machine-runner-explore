@@ -3,7 +3,7 @@ version: 2.1
 jobs:
   test:
     machine: true
-    resource_class: kelvintaywl-cci/machine3-linux-tf
+    resource_class: kelvintaywl-cci/throwaway-local-mac3
     steps:
       - run: pwd
       - run:
