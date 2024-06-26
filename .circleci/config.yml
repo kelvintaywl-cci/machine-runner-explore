@@ -9,17 +9,10 @@ jobs:
   foo:
     executor: machine3-linux
     steps:
+      - run: whoami
       - run: printenv PATH
-      - run: mkdir -p /tmp/throwaway/bin
-      - run: |
-          cat \<<EOT >> /tmp/throwaway/bin/nvm
-          #!/usr/bin/env bash
-          echo "mock NVM"
-          EOT
-          chmod +x /tmp/throwaway/bin/nvm
-      - run: echo "export PATH='/tmp/throwaway/bin:$PATH'" >> $BASH_ENV
-      - run: printenv PATH
-      - run: which nvm
+      - run: which goenv
+      - run: goenv --help
 
 workflows:
   main:
