@@ -15,7 +15,7 @@ jobs:
       - run: goenv --help
       - run: goenv install 1.6.2
       - run: goenv global 1.6.2
-      - run: go version
+      - run: goenv exec go version
 
 workflows:
   main:
