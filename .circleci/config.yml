@@ -12,9 +12,7 @@ jobs:
       - run: whoami
       - run: printenv PATH
       - run: which goenv
-      - run: goenv --help
-      - run: goenv install 1.6.2
-      - run: goenv global 1.6.2
+      - run: goenv global
       - run: goenv exec go version
 
 workflows:
