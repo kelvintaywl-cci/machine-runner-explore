@@ -4,20 +4,25 @@ executors:
   machine3-linux:
     machine: true
     resource_class: kelvintaywl-cci/machine3-linux-tf
-
+  circleci:
+    machine:
+      image: ubuntu-2204:2024.05.1
 jobs:
-  foo:
+  machinerunner3:
     executor: machine3-linux
     steps:
       - run: whoami
-      - run: printenv PATH
-      - run: which goenv
-      - run: goenv global
-      - run: goenv exec go version
+  machinecircleci:
+    executor: circleci
+    steps:
+      - run: whoami
 
 workflows:
   main:
     jobs:
-      - foo:
+      - machinecircleci:
+          context:
+            - foo-2
+      - machinerunner3:
           context:
             - foo-2
