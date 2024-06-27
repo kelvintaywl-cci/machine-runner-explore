@@ -4,25 +4,37 @@ executors:
   machine3-linux:
     machine: true
     resource_class: kelvintaywl-cci/machine3-linux-tf
+  machine1-linux:
+    machine: true
+    resource_class: kelvintaywl-cci/ec2-machine-runner1-ubuntu2204-tf
   circleci:
     machine:
       image: ubuntu-2204:2024.05.1
+
+commands:
+  inspect:
+    steps:
+      - run: printenv CIRCLE_OIDC_TOKEN
+      - run: printenv CIRCLE_OIDC_TOKEN_V2
+
 jobs:
-  machinerunner3:
-    executor: machine3-linux
+  inspect:
+    parameters:
+      exec:
+        type: executor
+    executor: << parameters.exec >>
     steps:
-      - run: whoami
-  machinecircleci:
-    executor: circleci
-    steps:
-      - run: whoami
+      - inspect
 
 workflows:
   main:
     jobs:
-      - machinecircleci:
-          context:
-            - foo-2
-      - machinerunner3:
+      - inspect:
+          matrix:
+            parameters:
+              exec:
+                # - machine1-linux
+                - machine3-linux
+                - circleci
           context:
             - foo-2
