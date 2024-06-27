@@ -33,7 +33,7 @@ workflows:
           matrix:
             parameters:
               exec:
-                # - machine1-linux
+                - machine1-linux
                 - machine3-linux
                 - circleci
           context:
