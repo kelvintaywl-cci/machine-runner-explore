@@ -10,7 +10,7 @@ jobs:
     executor: machine3-linux
     steps:
       - run: whoami
-      - run: docker info
+      - run: sudo docker info
 
 workflows:
   main:
