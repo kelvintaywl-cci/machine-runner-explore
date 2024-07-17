@@ -10,8 +10,7 @@ jobs:
     executor: machine3-linux
     steps:
       - run: whoami
-      - run: apt-get install -y cowsay
-      - run: cowsay -f tux "We love Linux!"
+      - run: echo "We love Linux!"
 
 workflows:
   main:
