@@ -10,10 +10,7 @@ jobs:
     executor: machine3-linux
     steps:
       - run: whoami
-      - run: printenv PATH
-      - run: which goenv
-      - run: goenv global
-      - run: goenv exec go version
+      - run: cowsay -f tux 'I love Linux!'
 
 workflows:
   main:
