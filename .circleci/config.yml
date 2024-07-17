@@ -10,7 +10,8 @@ jobs:
     executor: machine3-linux
     steps:
       - run: whoami
-      - run: sudo docker info
+      - run: apt-get install -y cowsay
+      - run: cowsay -f tux "We love Linux!"
 
 workflows:
   main:
