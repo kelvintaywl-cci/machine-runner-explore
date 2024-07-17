@@ -3,7 +3,7 @@ version: 2.1
 executors:
   machine3-linux:
     machine: true
-    resource_class: kelvintaywl-cci/machine3-linux-tf
+    resource_class: kelvintaywl-cci/lightsail-medium
 
 jobs:
   foo:
