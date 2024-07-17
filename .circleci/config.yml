@@ -10,7 +10,7 @@ jobs:
     executor: machine3-linux
     steps:
       - run: whoami
-      - run: cowsay -f tux 'I love Linux!'
+      - run: which docker
 
 workflows:
   main:
