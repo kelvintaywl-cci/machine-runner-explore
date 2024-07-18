@@ -3,17 +3,18 @@ version: 2.1
 executors:
   machine3-linux:
     machine: true
-    resource_class: kelvintaywl-cci/machine3-linux-tf
+    resource_class: kelvintaywl-cci/lightsail-medium
 
 jobs:
   foo:
     executor: machine3-linux
     steps:
       - run: whoami
-      - run: printenv PATH
-      - run: which goenv
-      - run: goenv global
-      - run: goenv exec go version
+      - run: pwd
+      - run: df -h
+      - run: head -c 1G /dev/urandom > "/tmp/dummy/${CIRCLE_WORKFLOW_JOB_ID}.txt"
+      - run: du -Shs /tmp/dummy/
+      - run: df -h
 
 workflows:
   main:
