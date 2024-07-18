@@ -10,12 +10,14 @@ jobs:
     executor: machine3-linux
     steps:
       - run: whoami
+      # working directory != /tmp/dummy
       - run: pwd
       - run: df -h
       - run: |
           mkdir -p /tmp/dummy
           head -c 1G /dev/urandom > "/tmp/dummy/${CIRCLE_WORKFLOW_JOB_ID}.txt"
       - run: du -Shs /tmp/dummy/
+      # we can see that the total available decreases..
       - run: df -h
 
 workflows:
