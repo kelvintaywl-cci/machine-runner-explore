@@ -10,6 +10,7 @@ jobs:
     executor: machine3-linux
     steps:
       - run: whoami
+      - run: echo "oh no live demo...."
       - run: echo "We love Linux!"
 
 workflows:
