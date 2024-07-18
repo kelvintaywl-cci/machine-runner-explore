@@ -12,7 +12,9 @@ jobs:
       - run: whoami
       - run: pwd
       - run: df -h
-      - run: head -c 1G /dev/urandom > "/tmp/dummy/${CIRCLE_WORKFLOW_JOB_ID}.txt"
+      - run: |
+          mkdir -p /tmp/dummy
+          head -c 1G /dev/urandom > "/tmp/dummy/${CIRCLE_WORKFLOW_JOB_ID}.txt"
       - run: du -Shs /tmp/dummy/
       - run: df -h
 
