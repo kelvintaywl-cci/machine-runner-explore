@@ -11,7 +11,7 @@ jobs:
     steps:
       - run: whoami
       - run: printenv PATH
-      - run: sudo docker info
+      - run: docker info
 
 
 workflows:
