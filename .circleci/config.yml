@@ -14,7 +14,8 @@ jobs:
       - run: goenv version
       - run: goenv install 1.12.0
       - run: goenv global 1.12.0
-      - run: which go && go version
+      - run: goenv rehash
+      - run: go version
 
 
 workflows:
