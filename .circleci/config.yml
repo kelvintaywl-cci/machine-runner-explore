@@ -11,7 +11,7 @@ jobs:
     steps:
       - run: whoami
       - run: printenv PATH
-      - run: docker info
+      - run: goenv version
 
 
 workflows:
