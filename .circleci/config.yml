@@ -43,7 +43,7 @@ workflows:
       - sleep:
           name: gatekeep
           exec: base
-          wait: 5
+          wait: 4
           parallel: 1
       - sleep:
           matrix:
