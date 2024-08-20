@@ -35,7 +35,7 @@ workflows:
           matrix:
             parameters:
               exec:
-                - ubuntu2004'
+                - ubuntu2004
               parallel:
                 - 2
   ubuntu2204:
