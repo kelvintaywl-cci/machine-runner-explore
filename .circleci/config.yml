@@ -41,11 +41,6 @@ workflows:
   ubuntu2204:
     jobs:
       - sleep:
-          name: gatekeep
-          exec: base
-          wait: 4
-          parallel: 1
-      - sleep:
           matrix:
             parameters:
               exec:
