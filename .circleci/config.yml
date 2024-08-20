@@ -1,19 +1,45 @@
 version: 2.1
 
-jobs:
-  test:
+executors:
+  ubuntu2004:
     machine: true
-    resource_class: kelvintaywl-cci/machine3-linux-tf
+    resource_class: kelvintaywl-cci/lightsail-medium-ubuntu-2004
+  ubuntu2204:
+    machine: true
+    resource_class: kelvintaywl-cci/lightsail-medium-ubuntu-2204
+  base:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+jobs:
+  sleep:
+    parameters:
+      exec:
+        type: executor
+      wait:
+        type: integer
+        default: 30
+    executor: << parameters.exec >>
     steps:
-      - run: pwd
-      - run:
-          name: create file
-          command: |
-            # 1G file
-            head -c 1073741824 </dev/urandom > ./$CIRCLE_WORKFLOW_JOB_ID.dump
-            tree .
+      - run: sleep << parameters.wait >>
+      - run: echo done
 
 workflows:
-  main:
+  ubuntu2004:
     jobs:
-      - test
+      - sleep:
+          matrix:
+            parameters:
+              exec:
+                - ubuntu2004
+  ubuntu2204:
+    jobs:
+      - sleep:
+          name: gatekeep
+          exec: base
+          wait: 5
+      - sleep:
+          matrix:
+            parameters:
+              exec:
+                - ubuntu2204
