@@ -19,7 +19,11 @@ jobs:
       wait:
         type: integer
         default: 30
+      parallel:
+        type: integer
+        default: 1
     executor: << parameters.exec >>
+    parallelism: << parameters.parallel >>
     steps:
       - run: sleep << parameters.wait >>
       - run: echo done
@@ -31,15 +35,20 @@ workflows:
           matrix:
             parameters:
               exec:
-                - ubuntu2004
+                - ubuntu2004'
+              parallel:
+                - 2
   ubuntu2204:
     jobs:
       - sleep:
           name: gatekeep
           exec: base
           wait: 5
+          parallel: 1
       - sleep:
           matrix:
             parameters:
               exec:
                 - ubuntu2204
+              parallel:
+                - 2
